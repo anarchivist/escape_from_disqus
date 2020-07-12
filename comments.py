@@ -33,8 +33,8 @@ for article in doc.getElementsByTagName("thread"):
     continue
 
   # Normalize the http and https prefixed IDs
-  if "https://paulhammant.com" in link or "http://paulhammant.com" in link:
-    link = link.replace("http://paulhammant.com","").replace("https://paulhammant.com", "")
+  if "https://matienzo.org" in link or "http://matienzo.org" in link:
+    link = link.replace("http://matienzo.org","").replace("https://matienzo.org", "")
     if id not in articles:
         articles[id] = { "link": link}
 
@@ -66,9 +66,10 @@ for post in doc.getElementsByTagName("post"):
       articles[article]["posts"] = {}
 
     articles[article]["posts"][postId] = {
-      "createdAt": parser.parse(post.getElementsByTagName("createdAt")[0].firstChild.nodeValue).strftime("%a, %d %b %Y"),
-      "who": post.getElementsByTagName("name")[0].firstChild.nodeValue,
-      "message": post.getElementsByTagName("message")[0].firstChild.nodeValue
+          "date": post.getElementsByTagName("createdAt")[0].firstChild.nodeValue,
+      "name": post.getElementsByTagName("name")[0].firstChild.nodeValue,
+      "comment": post.getElementsByTagName("message")[0].firstChild.nodeValue,
+      "path": articles[article]["link"]
     }
 
 articles_with_comments = {}
@@ -90,17 +91,20 @@ for article_key, article in articles_with_comments.items():
     articles_with_comments[article_key]["posts"][post_article_key]["order"] = ",".join(ancestors)
     articles_with_comments[article_key]["posts"][post_article_key]["indent"] = len(ancestors) -1
 
+
 # Change posts from a dict to a list
+dump = {}
 for article_key, article in articles_with_comments.items():
   article["posts"] = article["posts"].values()
+  dump[article["link"]] = article["posts"]
 
-# Actual JSON output.
+print json.dumps(dump)
+
 for article_key, article in articles_with_comments.items():
-  if not os.path.exists("disqusoutput"):
-    os.makedirs("disqusoutput")
   file = open("disqusoutput/" + article["link"].replace("/","-").replace(".","-") + ".json", "w")
   file.write(json.dumps(list(article["posts"]), indent=4, sort_keys=True))
   file.close()
+
 
 # Actual HTML output.
 for article_key, article in articles_with_comments.items():
@@ -109,9 +113,7 @@ for article_key, article in articles_with_comments.items():
   file.writelines("<table class='table table-striped'>\n")
   for post in sorted(article["posts"], key=lambda x: x['order']):
     w = str(50 * post["indent"])
-    file.writelines("<tr><td style='padding-left: " + w + "px' class='dTS'>" + post["createdAt"] + "</td><td class='dU'>" + post["who"] + "</td></tr>\n")
-    file.writelines("<tr><td style='padding-left: " + w + "px' colspan='2' class='dMessage'>" + post["message"] + "</td></tr>\n")
+    file.writelines("<tr><td style='padding-left: " + w + "px' class='dTS'>" + post["date"] + "</td><td class='dU'>" + post["name"] + "</td></tr>\n")
+    file.writelines("<tr><td style='padding-left: " + w + "px' colspan='2' class='dMessage'>" + post["comment"].encode('utf-8') + "</td></tr>\n")
   file.writelines("</table>\n")
   file.close()
-
-
